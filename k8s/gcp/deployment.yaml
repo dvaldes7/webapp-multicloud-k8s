@@ -16,9 +16,9 @@ spec:
         app: my-webapp
     spec:
       containers:
-        - name: mi-webapp
-          image: mi-webapp:v3
-          imagePullPolicy: Never #Significa que usará la imagen local no buscará en el registry
+        - name: my-webapp
+          image: us-central1-docker.pkg.dev/test-1-k8s/miwebapp/my-webapp:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
               

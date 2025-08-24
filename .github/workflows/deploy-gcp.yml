@@ -1,0 +1,48 @@
+name: Deploy to GCP GKE
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'k8s/aws/**'
+      - 'README.md'
+jobs:
+  deploy-gcp:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+      
+      - name: Configure Docker for GCP
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+      
+      - name: Build Docker image
+        run: docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_ARTIFACT_REPO }}/my-webapp:${{ github.sha }}
+
+      - name: Push Docker image
+        run: docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_ARTIFACT_REPO }}/my-webapp:${{ github.sha }}
+
+      - name: Get GKE credentials
+        run: gcloud container clusters get-credentials ${{ secrets.GCP_CLUSTER }} --zone us-central1-a --project ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Update deployment YAML with new image
+        run: | 
+          sed -i "s|image: .*/my-webapp:.*|image:us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID}}/{{ secrets.GCP_ARTIFACT_REPO }}/my-webapp:${{ github.sha }}|" k8s/gcp/deployment.yaml 
+      
+      - name: Apply kubernets manifest
+        run: kubectl apply -f k8s/gcp/
+
+      - name: Verify deployment
+        run: |
+          kubectl rollstatus deployment/my-webapp -n default
+          kubectl get pods -n default -l app=my-webapp
