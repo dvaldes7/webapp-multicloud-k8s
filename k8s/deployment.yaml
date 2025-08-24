@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-webapp
+  labels:
+    app: my-webapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-webapp
+  template:
+    metadata:
+      name: my-webapp
+      labels:
+        app: my-webapp
+    spec:
+      containers:
+        - name: mi-webapp
+          image: mi-webapp:v3
+          imagePullPolicy: Never #Significa que usará la imagen local no buscará en el registry
+          ports:
+            - containerPort: 80
+              
