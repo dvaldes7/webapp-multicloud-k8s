@@ -32,6 +32,11 @@ jobs:
       - name: Push Docker image
         run: docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_ARTIFACT_REPO }}/my-webapp:${{ github.sha }}
 
+      - name: Install GKE gcloud auth plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin
+          export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+
       - name: Get GKE credentials
         run: gcloud container clusters get-credentials ${{ secrets.GCP_CLUSTER }} --zone us-central1 --project ${{ secrets.GCP_PROJECT_ID }}
 
@@ -39,10 +44,14 @@ jobs:
         run: | 
           sed -i "s|image: .*/my-webapp:.*|image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_ARTIFACT_REPO }}/my-webapp:${{ github.sha }}|" k8s/gcp/deployment.yaml 
       
-      - name: Apply kubernets manifest
+      - name: Apply kubernetes manifest
+        env:
+          USE_GKE_GCLOUD_AUTH_PLUGIN: True
         run: kubectl apply -f k8s/gcp/
 
       - name: Verify deployment
+        env: 
+          USE_GKE_GCLOUD_AUTH_PLUGIN: True
         run: |
           kubectl rollstatus deployment/my-webapp -n default
           kubectl get pods -n default -l app=my-webapp
