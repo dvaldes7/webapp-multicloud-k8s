@@ -37,7 +37,7 @@ jobs:
 
       - name: Update deployment YAML with new image
         run: | 
-          sed -i "s|image: .*/my-webapp:.*|image:us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID}}/{{ secrets.GCP_ARTIFACT_REPO }}/my-webapp:${{ github.sha }}|" k8s/gcp/deployment.yaml 
+          sed -i "s|image: .*/my-webapp:.*|image: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_ARTIFACT_REPO }}/my-webapp:${{ github.sha }}|" k8s/gcp/deployment.yaml 
       
       - name: Apply kubernets manifest
         run: kubectl apply -f k8s/gcp/
