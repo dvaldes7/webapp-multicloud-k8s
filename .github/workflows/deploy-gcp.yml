@@ -53,5 +53,5 @@ jobs:
         env: 
           USE_GKE_GCLOUD_AUTH_PLUGIN: True
         run: |
-          kubectl rollstatus deployment/my-webapp -n default
+          kubectl rollout status deployment/my-webapp -n default
           kubectl get pods -n default -l app=my-webapp
