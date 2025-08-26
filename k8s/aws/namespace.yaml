@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: webapp-aws
+  labels:
+    name: webapp-aws
+    cloud-provider: aws
+    enviroment: production

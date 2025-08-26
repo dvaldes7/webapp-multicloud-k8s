@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-aws
+  namespace: webapp-aws
+  labels:
+    app: webapp
+    cloud-provider: aws
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      name: webapp
+      labels:
+        app: webapp
+    spec:
+      containers:
+        - name: webapp
+          image: IMAGE_URL
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: 64Mi
+              cpu: 50m
+            limits:
+              memory: 128Mi
+              cpu: 100m
+          env:
+            - name: CLOUD_PROVIDER
+              value: aws
+            - name: CLUSTER_NAME
+              value: my-webapp-eks
+            
+  

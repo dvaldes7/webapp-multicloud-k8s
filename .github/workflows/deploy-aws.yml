@@ -1,0 +1,112 @@
+name: Deploy to AWS EKS
+on:
+  push: 
+    branches:
+      - main
+      - master
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+  IMAGE_TAG: ${{ github.sha }}
+jobs:
+  deploy:
+    name: Build and Deploy to EKS
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image and push to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
+          docker build -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest .
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Install kubectl 
+        run: |
+          echo "📦 Installing kubectl..."
+
+          # Descargar última versión estable de kubectl
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+          # Dar permisos de ejecución
+          chmod +x kubectl
+
+          # Mover a directorio en PATH
+          sudo mv kubectl /usr/local/bin/
+
+          # Verificar instalación
+          kubectl version --client
+          echo "✅ kubectl installed successfully"
+
+      - name: Configure kubectl for EKS Cluster
+        run: |
+          echo "📦 Configuring kubectl for EKS cluster..."
+          aws eks --region ${{ env.AWS_REGION }} update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
+          echo "✅ kubectl configured for EKS cluster successfully
+          
+      - name: Deploy application to EKS
+        run: |
+          echo "Starting deployment to EKS"
+          # REEMPLAZAR PLACEHOLDER EN DEPLOYMENT
+          # Cambia IMAGE_URL por la URI real de tu imagen
+          sed -i "s|IMAGE_URL|$IMAGE_URI|g" k8s/aws/deployment.yaml
+          echo "✅ Updated deployment.yaml with image URI"
+
+          # APLICAR MANIFIESTOS DE KUBERNETES
+          echo "📄 Applying Kubernetes manifests..."
+
+          # 1. Crear namespace (si no existe)
+          kubectl apply -f k8s/aws/namespace.yaml
+          echo "✅ Namespace applied"
+
+          # 2. Crear/actualizar deployment (tu aplicación)
+          kubectl apply -f k8s/aws/deployment.yaml
+          echo "✅ Deployment applied"
+
+          # 3. Crear/actualizar service (LoadBalancer)
+          kubectl apply -f k8s/aws/service.yaml
+          echo "✅ Service applied"
+
+          echo "⏳ Waiting for deployment to be ready..." 
+
+      - name: Get application URL
+        run: |
+          echo "📄 Deployment is finished!"
+          echo "✅ Getting application URL..."
+          # Intentar obtener hostname del LoadBalancer
+          # Puede estar pendiente inicialmente
+          HOSTNAME=$(kubectl get svc webapp-service -n webapp-aws -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "pending")
+
+          if [ "$HOSTNAME" = "pending" ] || [ -z "$HOSTNAME" ]; then
+            echo "⏳ LoadBalancer URL: Still provisioning..."
+            echo "💡 Run this command later to get URL:"
+            echo "   kubectl get svc webapp-service -n webapp-aws"
+          else
+            echo "🎯 LoadBalancer URL: http://$HOSTNAME"
+          fi
+
+          echo ""
+          echo "🚀 Your React app is now running on AWS EKS!"
+
+  
