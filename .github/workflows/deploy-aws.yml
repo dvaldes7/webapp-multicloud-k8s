@@ -63,7 +63,7 @@ jobs:
         run: |
           echo "📦 Configuring kubectl for EKS cluster..."
           aws eks --region ${{ env.AWS_REGION }} update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
-          echo "✅ kubectl configured for EKS cluster successfully
+          echo "✅ kubectl configured for EKS cluster successfully "
           
       - name: Deploy application to EKS
         run: |
