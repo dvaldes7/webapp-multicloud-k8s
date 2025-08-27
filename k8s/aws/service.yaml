@@ -6,9 +6,9 @@ metadata:
   labels:
     app: webapp
     cloud-provider: aws
-  #annotations:
-    #service.beta.kubernetes.io/aws-load-balancer-type: "nlb" funciona mal con http
-    #service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
 spec:
   type: LoadBalancer
   ports:
